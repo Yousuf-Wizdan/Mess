@@ -44,7 +44,7 @@ export class MenuService {
     let snapshot = stored?.snapshot ?? null;
     let emptyPublished = false;
 
-    if (needsFetch && stored !== null && snapshot !== null) {
+    if (needsFetch && snapshot !== null && options.force !== true) {
       void this.withLock(async () => {
         try {
           await this.fetchAndStore();
@@ -53,6 +53,21 @@ export class MenuService {
         }
       });
       logEvent("menu.refresh.background", {});
+    } else if (needsFetch && snapshot !== null && options.force === true) {
+      const acquired = await this.kv.setIfNotExists(
+        LOCK_KEY,
+        new Date().toISOString(),
+        LOCK_TTL_SECONDS,
+      );
+      if (acquired) {
+        try {
+          snapshot = await this.fetchAndStore();
+        } catch {
+          logEvent("menu.refresh.forced.failed", {});
+        } finally {
+          await this.kv.delete(LOCK_KEY);
+        }
+      }
     } else if (needsFetch && snapshot === null) {
       const fetched = await this.fetchColdBoot();
       if (fetched === "empty") emptyPublished = true;

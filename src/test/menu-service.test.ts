@@ -210,16 +210,25 @@ describe("MenuService", () => {
     expect(menuCalls).toBe(1);
   });
 
-  it("force refresh bypasses freshness and refetches synchronously-ish", async () => {
+  it("force refresh refetches and returns fresh data synchronously", async () => {
     loginHandler();
     menuHandler();
     const { kv, service } = wire();
     await seedSnapshot(kv, 0.5);
+    const storedBefore = await kv.get<{ snapshot: { updatedAt: string } }>(
+      "mess:snapshot",
+    );
 
     const response = await service.getSnapshot({ force: true });
 
     expect(response.success).toBe(true);
-    await new Promise((r) => setTimeout(r, 50));
+    if (response.success) {
+      expect(response.data.updatedAt).not.toBe(
+        storedBefore?.snapshot.updatedAt,
+      );
+      expect(response.stale).toBe(false);
+    }
+    expect(camu.callsTo("/login/validate")).toBe(1);
     expect(camu.callsTo("/api/mess-management/get-student-menu-list")).toBe(1);
   });
 
