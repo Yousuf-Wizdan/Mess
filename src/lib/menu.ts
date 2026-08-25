@@ -93,6 +93,30 @@ export function deriveServeStatus(
   return "upcoming";
 }
 
+export type LiveMealState = {
+  state: "current" | "served" | "upcoming";
+  servedAt?: string;
+};
+
+export function liveMealState(
+  meal: Pick<MealPeriod, "window" | "serveStatus" | "servedAt">,
+  nowMinutes: number,
+): LiveMealState {
+  if (meal.window) {
+    if (nowMinutes >= meal.window.endMinutes) {
+      return { state: "served", servedAt: meal.servedAt };
+    }
+    if (nowMinutes >= meal.window.startMinutes) {
+      return { state: "current" };
+    }
+    return { state: "upcoming" };
+  }
+  return {
+    state: meal.serveStatus === "served" ? "served" : "upcoming",
+    servedAt: meal.servedAt,
+  };
+}
+
 export function sortMeals(meals: MealPeriod[]): MealPeriod[] {
   return [...meals].sort((a, b) =>
     a.order !== b.order ? a.order - b.order : a.name.localeCompare(b.name),

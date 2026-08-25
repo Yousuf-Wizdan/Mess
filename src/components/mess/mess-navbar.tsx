@@ -19,10 +19,10 @@ export function MessNavbar({
   return (
     <header className="sticky top-0 z-10 border-b bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
           <UtensilsCrossed className="size-4" aria-hidden />
         </span>
-        <h2 className="text-base font-semibold tracking-tight">Bennett Mess</h2>
+        <h2 className="text-base font-bold tracking-tight">Bennett Mess</h2>
         <Badge variant="secondary" className="hidden sm:inline-flex">
           Bennett University
         </Badge>
