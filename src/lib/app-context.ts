@@ -3,6 +3,7 @@ import { mapCamuMenu } from "@/lib/camu-map";
 import { KvStore } from "@/lib/kv";
 import { UpstashKv } from "@/lib/kv-upstash";
 import { MenuService } from "@/lib/menu-service";
+import { NutritionEnricher } from "@/lib/nutrition-enricher";
 import { HostellerSession, SessionManager, SessionStore } from "@/lib/session";
 import { EncryptedSessionStore } from "@/lib/session-store";
 import { MenuSnapshot } from "@/types/menu";
@@ -68,7 +69,10 @@ export function createMenuService(): MenuService {
   const kv = createKv();
   const sessionManager = createSessionManager(kv);
   const client = new CamuClient(CAMU_BASE_URL);
-  return new MenuService(kv, sessionManager, createMenuFetcher(client));
+  const enricher = new NutritionEnricher(kv, fetch.bind(globalThis));
+  return new MenuService(kv, sessionManager, createMenuFetcher(client), (s) =>
+    enricher.enrichSnapshot(s),
+  );
 }
 
 export function createMenuFetcher(

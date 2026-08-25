@@ -3,6 +3,7 @@ import { CamuClient } from "@/lib/camu";
 import { mapCamuMenu } from "@/lib/camu-map";
 import { InMemoryKv } from "@/lib/kv-memory";
 import { EMPTY_MENU_MESSAGE } from "@/types/menu";
+import type { MenuSnapshot } from "@/types/menu";
 import { MenuService } from "@/lib/menu-service";
 import { InMemorySessionStore, SessionManager } from "@/lib/session";
 import {
@@ -256,4 +257,46 @@ describe("MenuService", () => {
 
     expect(snapshot?.meals.length).toBeGreaterThan(0);
   }, 15_000);
+
+  it("applies the enrichment hook to fetched snapshots before storing", async () => {
+    loginHandler();
+    menuHandler();
+    const kv = new InMemoryKv();
+    const client = new CamuClient(baseUrl);
+    const sessions = new SessionManager(
+      client,
+      CREDS,
+      new InMemorySessionStore(),
+    );
+    const enrich = async (snapshot: MenuSnapshot): Promise<MenuSnapshot> => ({
+      ...snapshot,
+      meals: snapshot.meals.map((meal) => ({
+        ...meal,
+        dishes: meal.dishes.map((dish) => ({
+          ...dish,
+          macros: { proteinG: 1, carbsG: 2, fatG: 3 },
+          macroSource: "curated" as const,
+        })),
+      })),
+    });
+    const service = new MenuService(
+      kv,
+      sessions,
+      async (session) => mapCamuMenu(await client.getMenu(session)),
+      enrich,
+    );
+
+    const response = await service.getSnapshot();
+
+    expect(response.success).toBe(true);
+    if (response.success) {
+      expect(response.data.meals[0].dishes[0].macroSource).toBe("curated");
+    }
+    const stored = await kv.get<{ snapshot: MenuSnapshot }>("mess:snapshot");
+    expect(stored?.snapshot.meals[0].dishes[0].macros).toEqual({
+      proteinG: 1,
+      carbsG: 2,
+      fatG: 3,
+    });
+  });
 });

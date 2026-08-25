@@ -25,6 +25,9 @@ export class MenuService {
     private readonly fetchMenu: (
       session: HostellerSession,
     ) => Promise<MenuSnapshot>,
+    private readonly enrich?: (
+      snapshot: MenuSnapshot,
+    ) => Promise<MenuSnapshot>,
   ) {}
 
   async getSnapshot(options: { force?: boolean } = {}): Promise<MessMenuResponse> {
@@ -157,12 +160,13 @@ export class MenuService {
 
   private async fetchAndStore(): Promise<MenuSnapshot> {
     const fetched = await this.sessionManager.runWithSession(this.fetchMenu);
+    const snapshot = this.enrich ? await this.enrich(fetched) : fetched;
     await this.kv.set(SNAPSHOT_KEY, {
-      snapshot: fetched,
+      snapshot,
       storedAt: new Date().toISOString(),
     });
-    logEvent("menu.fetch.success", { meals: fetched.meals.length });
-    return fetched;
+    logEvent("menu.fetch.success", { meals: snapshot.meals.length });
+    return snapshot;
   }
 }
 

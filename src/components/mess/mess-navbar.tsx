@@ -26,6 +26,9 @@ export function MessNavbar({
         <Badge variant="secondary" className="hidden sm:inline-flex">
           Bennett University
         </Badge>
+        <Badge variant="outline" className="hidden md:inline-flex">
+          Open to all day scholars
+        </Badge>
         <div className="ml-auto flex items-center gap-2.5 sm:gap-3">
           {snapshot && (
             <span className="hidden text-sm text-muted-foreground md:inline">

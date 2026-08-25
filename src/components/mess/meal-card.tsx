@@ -1,4 +1,5 @@
 import { formatIst } from "@/lib/format";
+import { formatMacros, mealTotals, round1 } from "@/lib/nutrition";
 import {
   isCurrentMeal,
   istMinutesOfDay,
@@ -126,17 +127,59 @@ export function MealCard({
       </header>
       <ul className="flex-1 space-y-2.5 px-5 py-4">
         {meal.dishes.map((dish) => (
-          <li key={dish.name} className="flex items-baseline justify-between gap-3 text-sm leading-snug">
+          <li key={dish.name} className="flex items-start justify-between gap-3 text-sm leading-snug">
             <span>{dish.name}</span>
-            {dish.kcal !== undefined && (
-              <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
-                {dish.kcal} kcal
+            {(dish.kcal !== undefined || dish.macros) && (
+              <span className="flex shrink-0 flex-col items-end gap-0.5">
+                {dish.kcal !== undefined && (
+                  <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                    {dish.kcal} kcal
+                  </span>
+                )}
+                {dish.macros && (
+                  <span className="text-[11px] tabular-nums text-muted-foreground/80">
+                    {formatMacros(dish.macros)}
+                  </span>
+                )}
               </span>
             )}
           </li>
         ))}
       </ul>
+      <NutritionStrip meal={meal} />
     </article>
+  );
+}
+
+function NutritionStrip({ meal }: { meal: MealPeriod }) {
+  const totals = mealTotals(meal);
+  if (!totals) return null;
+  const hasEstimated = meal.dishes.some((d) => d.macroSource === "estimated");
+  const parts = [
+    ...(totals.kcal !== undefined ? [`${round1(totals.kcal)} kcal`] : []),
+    ...(totals.proteinG !== undefined
+      ? [
+          `P ${round1(totals.proteinG)}g`,
+          `C ${round1(totals.carbsG ?? 0)}g`,
+          `F ${round1(totals.fatG ?? 0)}g`,
+        ]
+      : []),
+  ];
+  return (
+    <footer className="flex items-center gap-2 border-t border-border/60 bg-muted/40 px-5 py-2.5">
+      <span className="text-xs font-medium tabular-nums text-muted-foreground">
+        {hasEstimated ? "≈ " : ""}
+        {parts.join(" · ")}
+      </span>
+      {hasEstimated && (
+        <span
+          className="ml-auto rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+          title="Macronutrients are estimates, not official values"
+        >
+          est.
+        </span>
+      )}
+    </footer>
   );
 }
 

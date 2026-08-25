@@ -1,6 +1,16 @@
+export interface Macros {
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+}
+
+export type MacroSource = "curated" | "estimated";
+
 export interface Dish {
   name: string;
   kcal?: number;
+  macros?: Macros;
+  macroSource?: MacroSource;
 }
 
 export type ServeStatus = "upcoming" | "served";

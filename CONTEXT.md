@@ -1,9 +1,16 @@
 # Context
 
-Bennett Mess shows Bennett University hostellers today's published mess menu,
-synced automatically from the Camu ERP.
+Bennett Mess shows **Day Scholars** today's published mess menu, synced
+automatically from the Camu ERP.
 
 ## Glossary
+
+- **Day Scholar**
+  A Bennett University student who lives off-campus and has no Camu access of
+  their own. The primary audience: they cannot see the mess menu through Camu
+  themselves, so the app publishes it for them. (The server still fetches data
+  via one authorized hosteller account; that credential is infrastructure, not
+  the audience.)
 
 - **Hosteller Session**
   The server-held Camu session material (JWT, api-key, session cookie) obtained
@@ -25,6 +32,13 @@ synced automatically from the Camu ERP.
 - **Dish**
   A single food item parsed from Camu's newline-separated meal text, optionally
   carrying a calorie count.
+
+- **Estimated Nutrition**
+  Per-dish macronutrients (protein, carbs, fat) that Camu does not provide.
+  Estimated from the dish name by an LLM and cached per dish so every visitor
+  sees stable values. Hand-curated entries always override estimates. Estimates
+  are always labeled as such and are never shown when unavailable — invented
+  numbers are forbidden.
 
 - **Live / Stale / Offline**
   The three trust states shown to visitors. *Live*: data is fresh. *Stale*:

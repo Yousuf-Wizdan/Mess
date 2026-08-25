@@ -13,8 +13,12 @@ export class UpstashKv implements KvStore {
     return value ?? null;
   }
 
-  async set(key: string, value: unknown): Promise<void> {
-    await this.redis.set(key, value);
+  async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
+    if (ttlSeconds === undefined) {
+      await this.redis.set(key, value);
+    } else {
+      await this.redis.set(key, value, { ex: ttlSeconds });
+    }
   }
 
   async setIfNotExists(

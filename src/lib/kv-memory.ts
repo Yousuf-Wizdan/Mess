@@ -18,8 +18,11 @@ export class InMemoryKv implements KvStore {
     return entry.value as T;
   }
 
-  async set(key: string, value: unknown): Promise<void> {
-    this.entries.set(key, { value, expiresAt: null });
+  async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
+    this.entries.set(key, {
+      value,
+      expiresAt: ttlSeconds === undefined ? null : Date.now() + ttlSeconds * 1000,
+    });
   }
 
   async setIfNotExists(
