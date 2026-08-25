@@ -1,0 +1,21 @@
+import { createKv, createSessionManager } from "@/lib/app-context";
+import { logEvent } from "@/lib/log";
+import { requireCronSecret } from "@/lib/cron-auth";
+
+export const dynamic = "force-dynamic";
+
+export async function POST(request: Request): Promise<Response> {
+  if (!requireCronSecret(request)) {
+    return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+  try {
+    await createSessionManager(createKv()).getValidSession();
+    logEvent("cron.session.warm", {});
+    return Response.json({ success: true });
+  } catch {
+    return Response.json(
+      { success: false, error: "Session upkeep failed" },
+      { status: 502 },
+    );
+  }
+}
