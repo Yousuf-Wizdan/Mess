@@ -35,8 +35,8 @@ and refreshes the daily menu on schedule. No logins, no manual steps.
    | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Upstash REST credentials |
    | `CRON_SECRET` | Bearer token required by the cron endpoints |
 
-   The Camu JWT / api-key / cookie are **not** configured manually — the app
-   obtains them via auto-login and persists them encrypted in Redis.
+   The Camu session (`connect.sid` cookie) is **not** configured manually —
+   the app obtains it via auto-login and persists it encrypted in Redis.
 
 4. Run:
 
@@ -49,6 +49,16 @@ Open http://localhost:3000 — the first load performs an immediate fetch
 
 ## How the automation works
 
+- **Login (v2 contract, verified against production)** — `POST /login/validate`
+  on the student host with JSON body `{InId, Email, pwd}` and headers
+  `appVersion: v2`, `clientTzOfst: -330`, `X-App-Type: student`. Success returns
+  `output.data.logindetails` plus a `connect.sid` session cookie; failure
+  returns `code: "INCRT_CRD"`.
+- **Session validation** — `GET /api/sessionvalidate` with the session cookie;
+  200 = valid, 401 = expired → instant re-login.
+- **Menu** — `POST /api/mess-management/get-student-menu-list` with the session
+  cookie (Authorization/api-key sent only if available). Body `{}` returns the
+  currently published day.
 - **Lazy validation** — every menu request validates the cached session first;
    a Camu 401 triggers instant re-login and one retry.
 - **Hourly backstop** — keeps the session warm even with no visitors.
@@ -56,6 +66,13 @@ Open http://localhost:3000 — the first load performs an immediate fetch
   published day.
 - **Failure handling** — exponential-backoff retries; visitors always get the
   last-good snapshot with a stale indicator.
+
+### Manual-session fallback
+
+If auto-login is unavailable for your account, set `CAMU_SESSION_COOKIE` in the
+environment (copy the full `Cookie` header from any logged-in Camu request in
+your browser's DevTools Network tab). The app uses it directly and only falls
+back to credential login when it expires. See `.env.example`.
 
 ### Keeping the cron running (deployment note)
 

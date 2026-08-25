@@ -1,16 +1,16 @@
-import type { CamuMenuResponse } from "@/types/camu";
-import { HostellerSession } from "@/lib/session";
 import { logEvent } from "@/lib/log";
 import {
   CamuAuthError,
   CamuTransientError,
   withRetry,
 } from "@/lib/retry";
+import { HostellerSession } from "@/lib/session";
+import type { CamuMenuResponse } from "@/types/camu";
 
 export interface CamuCredentials {
-  email: string;
-  password: string;
-  institutionId: string;
+  Email: string;
+  pwd: string;
+  InId: string;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -23,36 +23,57 @@ export class CamuClient {
 
   async login(credentials: CamuCredentials): Promise<HostellerSession> {
     return withRetry(async () => {
-      const response = await this.request("POST", "/login/validate", {
-        body: {
-          email: credentials.email,
-          password: credentials.password,
-          inId: credentials.institutionId,
-        },
+      const cookies = await this.warmUpCookies();
+      const response = await this.fetchImpl(`${this.baseUrl}/login/validate`, {
+        method: "POST",
+        headers: this.baseHeaders(cookies),
+        body: JSON.stringify({
+          InId: credentials.InId,
+          Email: credentials.Email,
+          pwd: credentials.pwd,
+        }),
+        signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
       });
       if (response.status === 401 || response.status === 403) {
-        throw new CamuAuthError("Login rejected: invalid credentials");
+        throw new CamuAuthError("Login rejected by Camu");
       }
       await ensureOk(response, "login");
-      const payload = (await response.json().catch(() => null)) as
-        | Record<string, unknown>
-        | null;
-      const cookie = extractSessionCookie(response.headers.get("set-cookie"));
-      const session = extractSession(payload, cookie);
-      if (!session) {
-        throw new CamuTransientError(
-          "Login succeeded but no session material found in response",
-        );
+      const payload = (await response.json().catch(() => null)) as LoginPayload | null;
+      const data = payload?.output?.data;
+      if (
+        !data ||
+        typeof data !== "object" ||
+        !("logindetails" in data) ||
+        data.logindetails == null
+      ) {
+        const message =
+          data && "message" in data && typeof data.message === "string"
+            ? data.message
+            : "Login failed";
+        logEvent("camu.login.rejected", {});
+        throw new CamuAuthError(message);
+      }
+      const cookie = extractSessionCookie(
+        response.headers.get("set-cookie"),
+        "connect.sid",
+      );
+      if (!cookie) {
+        throw new CamuTransientError("Login succeeded but no session cookie was issued");
       }
       logEvent("camu.login.success", {});
-      return session;
+      return {
+        cookie,
+        jwt: "",
+        apiKey: "",
+        createdAt: new Date().toISOString(),
+      };
     });
   }
 
   async validateSession(session: HostellerSession): Promise<boolean> {
     try {
       const response = await withRetry(() =>
-        this.request("GET", "/sessionvalidate", { session }),
+        this.request("GET", "/api/sessionvalidate", session),
       );
       return response.ok;
     } catch {
@@ -64,8 +85,9 @@ export class CamuClient {
     const response = await withRetry(async () => {
       const res = await this.request(
         "POST",
-        "/mess-management/get-student-menu-list",
-        { session, body: {} },
+        "/api/mess-management/get-student-menu-list",
+        session,
+        {},
       );
       if (res.status === 401 || res.status === 403) {
         throw new CamuAuthError();
@@ -76,28 +98,53 @@ export class CamuClient {
     return (await response.json()) as CamuMenuResponse;
   }
 
+  private async warmUpCookies(): Promise<string> {
+    try {
+      const response = await this.fetchImpl(`${this.baseUrl}/`, {
+        headers: baseStaticHeaders(),
+        signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
+      });
+      return normalizeCookies(response.headers.get("set-cookie"));
+    } catch {
+      return "";
+    }
+  }
+
   private request(
     method: "GET" | "POST",
     path: string,
-    options: { session?: HostellerSession; body?: unknown } = {},
+    session: HostellerSession,
+    body?: unknown,
   ): Promise<Response> {
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      appVersion: "v2",
-      clientTzOfst: "-330",
+      ...this.baseHeaders(session.cookie),
+      ...(session.jwt ? { Authorization: `Bearer ${session.jwt}` } : {}),
+      ...(session.apiKey ? { "api-key": session.apiKey } : {}),
     };
-    if (options.session) {
-      headers.Authorization = `Bearer ${options.session.jwt}`;
-      headers["api-key"] = options.session.apiKey;
-      headers.Cookie = options.session.cookie;
-    }
     return this.fetchImpl(`${this.baseUrl}${path}`, {
       method,
       headers,
-      body: method === "POST" ? JSON.stringify(options.body ?? {}) : undefined,
+      body: method === "POST" ? JSON.stringify(body ?? {}) : undefined,
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     });
   }
+
+  private baseHeaders(cookie: string): Record<string, string> {
+    return {
+      ...baseStaticHeaders(),
+      ...(cookie ? { Cookie: cookie } : {}),
+    };
+  }
+}
+
+function baseStaticHeaders(): Record<string, string> {
+  return {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    appVersion: "v2",
+    clientTzOfst: "-330",
+    "X-App-Type": "student",
+  };
 }
 
 async function ensureOk(response: Response, action: string): Promise<void> {
@@ -111,50 +158,31 @@ async function ensureOk(response: Response, action: string): Promise<void> {
   throw new Error(`Camu ${action} failed with status ${response.status}`);
 }
 
-function extractSessionCookie(setCookie: string | null): string {
+function normalizeCookies(setCookie: string | null): string {
   if (!setCookie) return "";
-  const pair = setCookie.split(";")[0]?.trim();
-  return pair ?? "";
+  return setCookie
+    .split(/,(?=[^;]+?=)/)
+    .map((c) => c.split(";")[0].trim())
+    .filter(Boolean)
+    .join("; ");
 }
 
-function extractSession(
-  payload: Record<string, unknown> | null,
-  cookie: string,
-): HostellerSession | null {
-  const found: { jwt?: string; apiKey?: string } = {};
-  walk(payload, (key, value) => {
-    if (typeof value !== "string" || value.length === 0) return;
-    const lower = key.toLowerCase();
-    if (
-      !found.jwt &&
-      (lower === "jwt" ||
-        lower.endsWith("token") ||
-        lower === "access_token" ||
-        lower === "jwttoken")
-    ) {
-      found.jwt = value;
-    }
-    if (!found.apiKey && (lower === "api-key" || lower === "apikey")) {
-      found.apiKey = value;
-    }
-  });
-  if (!found.jwt || !found.apiKey) return null;
-  return {
-    jwt: found.jwt,
-    apiKey: found.apiKey,
-    cookie,
-    createdAt: new Date().toISOString(),
-  };
-}
-
-function walk(
-  node: unknown,
-  visit: (key: string, value: unknown) => void,
-  depth = 0,
-): void {
-  if (typeof node !== "object" || node === null || depth > 8) return;
-  for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
-    visit(key, value);
-    walk(value, visit, depth + 1);
+function extractSessionCookie(setCookie: string | null, name: string): string {
+  if (!setCookie) return "";
+  for (const part of setCookie.split(/,(?=[^;]+?=)/)) {
+    const pair = part.split(";")[0]?.trim();
+    if (pair?.startsWith(`${name}=`)) return pair;
   }
+  return "";
+}
+
+interface LoginPayload {
+  output?: {
+    data?: {
+      logindetails?: unknown;
+      message?: string;
+      code?: string;
+    } | null;
+    errors?: unknown;
+  };
 }

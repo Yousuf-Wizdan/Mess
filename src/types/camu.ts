@@ -1,3 +1,10 @@
+export interface CamuLoginData {
+  logindetails?: unknown;
+  message?: string;
+  code?: string;
+  [key: string]: unknown;
+}
+
 export interface CamuMeal {
   _id: string;
   msCde: string;
@@ -18,8 +25,8 @@ export interface CamuMenuData {
 }
 
 export interface CamuMenuResponse {
-  output: {
-    data: CamuMenuData | null;
-    errors: unknown;
+  output?: {
+    data?: CamuMenuData | null;
+    errors?: unknown;
   };
 }

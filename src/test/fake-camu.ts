@@ -78,16 +78,6 @@ export function jsonResponse(
   res.end(JSON.stringify(payload));
 }
 
-export const VALID_SESSION_RESPONSE = {
-  output: {
-    data: {
-      token: "test-jwt-token",
-      "api-key": "test-api-key",
-    },
-    errors: null,
-  },
-};
-
 export const VALID_MENU_RESPONSE = {
   output: {
     data: {

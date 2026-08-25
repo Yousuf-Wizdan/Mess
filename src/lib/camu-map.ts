@@ -24,7 +24,7 @@ export function mapCamuMenu(
   fetchedAt: Date = new Date(),
 ): MenuSnapshot {
   const data = response.output?.data;
-  if (!data || !response.output || response.output.errors !== null) {
+  if (!data) {
     throw new Error("Camu returned an error payload");
   }
   if (data.isAtve === false || !data.oMealList || data.oMealList.length === 0) {

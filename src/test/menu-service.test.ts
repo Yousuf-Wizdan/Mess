@@ -8,14 +8,13 @@ import { InMemorySessionStore, SessionManager } from "@/lib/session";
 import {
   FakeCamu,
   VALID_MENU_RESPONSE,
-  VALID_SESSION_RESPONSE,
-  jsonResponse,
+    jsonResponse,
 } from "./fake-camu";
 
 const CREDS = {
-  email: "h@bennett.edu",
-  password: "pw",
-  institutionId: "bennett",
+  Email: "h@bennett.edu",
+  pwd: "pw",
+  InId: "bennett",
 };
 
 let camu: FakeCamu;
@@ -24,9 +23,9 @@ let baseUrl: string;
 beforeEach(async () => {
   camu = new FakeCamu();
   baseUrl = await camu.start();
-  process.env.CAMU_EMAIL = CREDS.email;
-  process.env.CAMU_PASSWORD = CREDS.password;
-  process.env.CAMU_INSTITUTION_ID = CREDS.institutionId;
+  process.env.CAMU_EMAIL = CREDS.Email;
+  process.env.CAMU_PASSWORD = CREDS.pwd;
+  process.env.CAMU_INSTITUTION_ID = CREDS.InId;
 });
 
 afterEach(async () => {
@@ -52,15 +51,15 @@ function wire() {
 
 function loginHandler(): void {
   camu.on("/login/validate", (_req, res) => {
-    jsonResponse(res, 200, VALID_SESSION_RESPONSE, {
-      "Set-Cookie": "SESSIONID=s1; Path=/",
+    jsonResponse(res, 200, { output: { data: { logindetails: {} } } }, {
+      "Set-Cookie": "connect.sid=s%3As1; Path=/",
     });
   });
 }
 
 function menuHandler(statusForFirst?: number): void {
   let calls = 0;
-  camu.on("/mess-management/get-student-menu-list", (_req, res) => {
+  camu.on("/api/mess-management/get-student-menu-list", (_req, res) => {
     calls += 1;
     if (statusForFirst !== undefined && calls === 1) {
       jsonResponse(res, statusForFirst, {});
@@ -122,7 +121,7 @@ describe("MenuService", () => {
     expect(response.stale).toBe(false);
     expect(camu.callsTo("/login/validate")).toBe(0);
     expect(
-      camu.callsTo("/mess-management/get-student-menu-list"),
+      camu.callsTo("/api/mess-management/get-student-menu-list"),
     ).toBe(0);
   });
 
@@ -138,16 +137,16 @@ describe("MenuService", () => {
     expect(response.stale).toBe(true);
     // background fetch is in flight; give it a beat
     await new Promise((r) => setTimeout(r, 50));
-    expect(camu.callsTo("/mess-management/get-student-menu-list")).toBe(1);
+    expect(camu.callsTo("/api/mess-management/get-student-menu-list")).toBe(1);
   });
 
   it("keeps serving last-good data when Camu is down during a background refresh", async () => {
     const { kv, service } = wire();
     await seedSnapshot(kv, 10);
     camu.on("/login/validate", (_req, res) => {
-      jsonResponse(res, 200, VALID_SESSION_RESPONSE);
+      { res.statusCode = 500; res.end(); }
     });
-    camu.on("/mess-management/get-student-menu-list", (_req, res) => {
+    camu.on("/api/mess-management/get-student-menu-list", (_req, res) => {
       jsonResponse(res, 500, {});
     });
 
@@ -162,7 +161,7 @@ describe("MenuService", () => {
 
   it("reports failure when there is no snapshot and the fetch fails", async () => {
     loginHandler();
-    camu.on("/mess-management/get-student-menu-list", (_req, res) => {
+    camu.on("/api/mess-management/get-student-menu-list", (_req, res) => {
       jsonResponse(res, 500, {});
     });
     const { service } = wire();
@@ -175,7 +174,7 @@ describe("MenuService", () => {
 
   it("returns a clean empty signal when nothing is published", async () => {
     loginHandler();
-    camu.on("/mess-management/get-student-menu-list", (_req, res) => {
+    camu.on("/api/mess-management/get-student-menu-list", (_req, res) => {
       jsonResponse(res, 200, {
         output: { data: { facNme: "GF", curntDte: "2026-08-25T00:00:00Z", isAtve: false, oMealList: [] }, errors: null },
       });
@@ -195,7 +194,7 @@ describe("MenuService", () => {
   it("collapses concurrent requests behind the lock (stampede guard)", async () => {
     loginHandler();
     let menuCalls = 0;
-    camu.on("/mess-management/get-student-menu-list", (_req, res) => {
+    camu.on("/api/mess-management/get-student-menu-list", (_req, res) => {
       menuCalls += 1;
       setTimeout(() => jsonResponse(res, 200, VALID_MENU_RESPONSE), 40);
     });
@@ -221,7 +220,7 @@ describe("MenuService", () => {
 
     expect(response.success).toBe(true);
     await new Promise((r) => setTimeout(r, 50));
-    expect(camu.callsTo("/mess-management/get-student-menu-list")).toBe(1);
+    expect(camu.callsTo("/api/mess-management/get-student-menu-list")).toBe(1);
   });
 
   it("refresh() returns the new snapshot for cron use", async () => {
@@ -238,9 +237,9 @@ describe("MenuService", () => {
     const { kv, service } = wire();
     await seedSnapshot(kv, 1);
     camu.on("/login/validate", (_req, res) => {
-      jsonResponse(res, 200, VALID_SESSION_RESPONSE);
+      { res.statusCode = 500; res.end(); }
     });
-    camu.on("/mess-management/get-student-menu-list", (_req, res) => {
+    camu.on("/api/mess-management/get-student-menu-list", (_req, res) => {
       jsonResponse(res, 500, {});
     });
 

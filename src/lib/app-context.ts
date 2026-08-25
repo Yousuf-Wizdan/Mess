@@ -1,27 +1,47 @@
-import {
-  CamuClient,
-  CamuCredentials,
-} from "@/lib/camu";
+import { CamuClient, CamuCredentials } from "@/lib/camu";
 import { mapCamuMenu } from "@/lib/camu-map";
 import { KvStore } from "@/lib/kv";
 import { UpstashKv } from "@/lib/kv-upstash";
 import { MenuService } from "@/lib/menu-service";
-import {
-  HostellerSession,
-  SessionManager,
-} from "@/lib/session";
+import { HostellerSession, SessionManager, SessionStore } from "@/lib/session";
 import { EncryptedSessionStore } from "@/lib/session-store";
 import { MenuSnapshot } from "@/types/menu";
 
 export const CAMU_BASE_URL =
-  process.env.CAMU_BASE_URL ?? "https://student.bennetterp.camu.in/api";
+  process.env.CAMU_BASE_URL ?? "https://student.bennetterp.camu.in";
 
 export function readCredentials(): CamuCredentials {
   return {
-    email: process.env.CAMU_EMAIL ?? "",
-    password: process.env.CAMU_PASSWORD ?? "",
-    institutionId: process.env.CAMU_INSTITUTION_ID ?? "",
+    Email: process.env.CAMU_EMAIL ?? "",
+    pwd: process.env.CAMU_PASSWORD ?? "",
+    InId: process.env.CAMU_INSTITUTION_ID ?? "",
   };
+}
+
+function readManualSession(): HostellerSession | null {
+  const cookie = process.env.CAMU_SESSION_COOKIE;
+  if (!cookie) return null;
+  return {
+    cookie,
+    jwt: process.env.CAMU_JWT || undefined,
+    apiKey: process.env.CAMU_API_KEY || undefined,
+    createdAt: "manual",
+  };
+}
+
+class ManualSeededSessionStore implements SessionStore {
+  constructor(
+    private readonly inner: SessionStore,
+    private readonly manual: HostellerSession,
+  ) {}
+
+  async get(): Promise<HostellerSession | null> {
+    return (await this.inner.get()) ?? this.manual;
+  }
+
+  async set(session: HostellerSession): Promise<void> {
+    await this.inner.set(session);
+  }
 }
 
 export function createKv(): KvStore {
@@ -36,8 +56,12 @@ export function createSessionManager(kv: KvStore): SessionManager {
     kv,
     process.env.SESSION_ENCRYPTION_KEY ?? "",
   );
+  const manual = readManualSession();
+  const store: SessionStore = manual
+    ? new ManualSeededSessionStore(sessionStore, manual)
+    : sessionStore;
   const client = new CamuClient(CAMU_BASE_URL);
-  return new SessionManager(client, readCredentials(), sessionStore);
+  return new SessionManager(client, readCredentials(), store);
 }
 
 export function createMenuService(): MenuService {

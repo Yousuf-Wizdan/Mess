@@ -6,9 +6,9 @@ import { logEvent, logError } from "@/lib/log";
 import { CamuAuthError } from "@/lib/retry";
 
 export interface HostellerSession {
-  jwt: string;
-  apiKey: string;
   cookie: string;
+  jwt?: string;
+  apiKey?: string;
   createdAt: string;
 }
 
@@ -32,7 +32,10 @@ export class InMemorySessionStore implements SessionStore {
 export function isHostellerConfigured(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
-  return Boolean(env.CAMU_EMAIL && env.CAMU_PASSWORD && env.CAMU_INSTITUTION_ID);
+  return Boolean(
+    (env.CAMU_EMAIL && env.CAMU_PASSWORD && env.CAMU_INSTITUTION_ID) ||
+      env.CAMU_SESSION_COOKIE,
+  );
 }
 
 export class SessionManager {

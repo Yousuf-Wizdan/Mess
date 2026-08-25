@@ -1,0 +1,20 @@
+
+> bennett-mess@0.1.0 dev
+> next dev
+
+▲ Next.js 16.3.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://26.135.160.134:3000
+- Environments: .env
+✓ Ready in 701ms
+✓ Running next.config.ts took 68ms
+
+{"ts":"2026-08-25T15:12:52.081Z","level":"info","event":"session.refresh","reason":"missing"}
+{"ts":"2026-08-25T15:12:52.598Z","level":"info","event":"camu.login.success"}
+{"ts":"2026-08-25T15:12:52.830Z","level":"info","event":"menu.fetch.success","meals":4}
+ GET /api/mess-menu 200 in 1635ms (next.js: 350ms, application-code: 1285ms)
+ GET /api/mess-menu 200 in 227ms (next.js: 3ms, application-code: 224ms)
+{"ts":"2026-08-25T15:13:57.066Z","level":"info","event":"menu.fetch.success","meals":4}
+{"ts":"2026-08-25T15:13:57.103Z","level":"info","event":"cron.menu.done","ok":true}
+ POST /api/cron/menu 200 in 774ms (next.js: 92ms, application-code: 682ms)
+ GET / 200 in 2.3s (next.js: 2.1s, application-code: 219ms)
