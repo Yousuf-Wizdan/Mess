@@ -1,34 +1,35 @@
-import { Badge } from "@/components/ui/badge";
 import type { MenuHealth } from "@/types/menu";
-import { CircleDot } from "lucide-react";
 
-const HEALTH_CONFIG: Record<
-  MenuHealth,
-  { label: string; className: string; dot: string }
-> = {
-  live: {
-    label: "Live",
-    className: "bg-emerald-100 text-emerald-800 border-emerald-300",
-    dot: "bg-emerald-500",
-  },
-  stale: {
-    label: "Stale",
-    className: "bg-amber-100 text-amber-800 border-amber-300",
-    dot: "bg-amber-500",
-  },
-  offline: {
-    label: "Offline",
-    className: "bg-red-100 text-red-800 border-red-300",
-    dot: "bg-red-500",
-  },
+const HEALTH_LABEL: Record<MenuHealth, string> = {
+  live: "Live",
+  stale: "Stale",
+  offline: "Offline",
+};
+
+const HEALTH_STYLE: Record<MenuHealth, string> = {
+  live: "border-emerald-600/30 bg-emerald-50 text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-950 dark:text-emerald-300",
+  stale:
+    "border-amber-600/30 bg-amber-50 text-amber-800 dark:border-amber-400/20 dark:bg-amber-950 dark:text-amber-300",
+  offline:
+    "border-red-600/30 bg-red-50 text-red-800 dark:border-red-400/20 dark:bg-red-950 dark:text-red-300",
 };
 
 export function StatusPill({ health }: { health: MenuHealth }) {
-  const config = HEALTH_CONFIG[health];
   return (
-    <Badge variant="outline" className={`gap-1.5 ${config.className}`}>
-      <CircleDot className={`size-3 fill-current ${config.dot} text-transparent`} />
-      {config.label}
-    </Badge>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${HEALTH_STYLE[health]}`}
+    >
+      <span
+        aria-hidden
+        className={`size-1.5 rounded-full ${
+          health === "live"
+            ? "bg-emerald-600 dark:bg-emerald-400"
+            : health === "stale"
+              ? "bg-amber-600 dark:bg-amber-400"
+              : "bg-red-600 dark:bg-red-400"
+        }`}
+      />
+      {HEALTH_LABEL[health]}
+    </span>
   );
 }

@@ -17,21 +17,19 @@ export function MessNavbar({
   onRefresh?: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <UtensilsCrossed className="size-4" />
-          </span>
-          <span className="text-lg font-semibold tracking-tight">Bennett Mess</span>
-          <Badge variant="secondary" className="hidden sm:inline-flex">
-            Bennett University
-          </Badge>
-        </div>
-        <div className="ml-auto flex items-center gap-3">
+    <header className="sticky top-0 z-10 border-b bg-background/85 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
+          <UtensilsCrossed className="size-4" aria-hidden />
+        </span>
+        <h2 className="text-base font-semibold tracking-tight">Bennett Mess</h2>
+        <Badge variant="secondary" className="hidden sm:inline-flex">
+          Bennett University
+        </Badge>
+        <div className="ml-auto flex items-center gap-2.5 sm:gap-3">
           {snapshot && (
             <span className="hidden text-sm text-muted-foreground md:inline">
-              {formatIstDay(snapshot.date)} · updated {formatIst(snapshot.updatedAt)}
+              {formatIstDay(snapshot.date)}, updated {formatIst(snapshot.updatedAt)}
             </span>
           )}
           <StatusPill health={health} />
@@ -41,7 +39,7 @@ export function MessNavbar({
             disabled={refreshing || !onRefresh}
             onClick={onRefresh}
           >
-            <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
             Refresh
           </Button>
         </div>
@@ -49,4 +47,3 @@ export function MessNavbar({
     </header>
   );
 }
-

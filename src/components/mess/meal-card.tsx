@@ -1,147 +1,125 @@
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
 import { formatIst } from "@/lib/format";
 import { isCurrentMeal, istMinutesOfDay, sortMeals } from "@/lib/menu";
 import type { MealPeriod, MenuSnapshot } from "@/types/menu";
-import { Clock, MapPin, UtensilsCrossed } from "lucide-react";
+import { Clock } from "lucide-react";
+
+function ServeChip({ meal }: { meal: MealPeriod }) {
+  if (meal.serveStatus === "served") {
+    return (
+      <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+        Served{meal.servedAt ? ` at ${meal.servedAt}` : ""}
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+      Upcoming
+    </span>
+  );
+}
 
 export function MealCard({
   meal,
   nowMinutes = istMinutesOfDay(),
+  index = 0,
 }: {
   meal: MealPeriod;
   nowMinutes?: number;
+  index?: number;
 }) {
   const current = isCurrentMeal(meal, nowMinutes);
+  const time = meal.timeLabel.replace(/^\w+\s+/, "");
   return (
-    <Card
-      className={`flex flex-col overflow-hidden pt-0 transition-shadow ${
-        current
-          ? "border-2 shadow-lg ring-2"
-          : "opacity-90 hover:shadow-md"
+    <article
+      className={`rise flex flex-col rounded-xl border bg-card text-card-foreground transition-shadow ${
+        current ? "shadow-md" : "hover:shadow-sm"
       }`}
       style={
-        current
-          ? ({
-              borderColor: meal.accentColor,
-              "--tw-ring-color": `${meal.accentColor}55`,
-            } as React.CSSProperties)
-          : undefined
+        {
+          ...(current
+            ? {
+                borderColor: meal.accentColor,
+                background: `linear-gradient(to bottom, ${meal.accentColor}14, transparent 140px)`,
+              }
+            : {}),
+          "--i": index,
+        } as React.CSSProperties
       }
     >
-      <div className="h-1.5 w-full" style={{ backgroundColor: meal.accentColor }} />
-      <CardHeader className="gap-1">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="flex items-center gap-2 text-lg font-semibold">
-            <UtensilsCrossed
-              className="size-4 shrink-0"
-              style={{ color: meal.accentColor }}
-            />
-            {meal.name}
-          </h3>
+      <div className="p-5 pb-4">
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="text-base font-semibold tracking-tight">{meal.name}</h3>
           {current ? (
-            <Badge className="text-white" style={{ backgroundColor: meal.accentColor }}>
+            <span className="rounded-full bg-foreground px-2.5 py-0.5 text-xs font-semibold text-background">
               Now serving
-            </Badge>
-          ) : meal.serveStatus === "served" ? (
-            <Badge variant="secondary">Served{meal.servedAt ? ` @ ${meal.servedAt}` : ""}</Badge>
+            </span>
           ) : (
-            <Badge variant="outline">Upcoming</Badge>
+            <ServeChip meal={meal} />
           )}
         </div>
-        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Clock className="size-3.5" /> {meal.timeLabel.replace(/^\w+\s+/, "")}
+        <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Clock className="size-3.5 shrink-0" aria-hidden />
+          {time}
         </p>
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <MapPin className="size-3.5" /> {meal.facility}
-        </p>
-      </CardHeader>
-      <CardContent className="flex-1">
-        <ul className="space-y-1.5">
-          {meal.dishes.map((dish) => (
-            <li key={dish.name} className="flex items-baseline justify-between gap-2 text-sm">
-              <span>{dish.name}</span>
-              {dish.kcal !== undefined && (
-                <Badge variant="outline" className="shrink-0 tabular-nums">
-                  {dish.kcal} kcal
-                </Badge>
-              )}
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-      <CardFooter className="text-xs text-muted-foreground">
-        {meal.dishes.length} item{meal.dishes.length === 1 ? "" : "s"}
-      </CardFooter>
-    </Card>
+      </div>
+      <ul className="flex-1 space-y-2 border-t px-5 py-4">
+        {meal.dishes.map((dish) => (
+          <li key={dish.name} className="flex items-baseline justify-between gap-3 text-sm leading-snug">
+            <span>{dish.name}</span>
+            {dish.kcal !== undefined && (
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                {dish.kcal}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </article>
   );
 }
 
 export function MealCardSkeleton() {
   return (
-    <Card className="flex flex-col overflow-hidden pt-0">
-      <div className="h-1.5 w-full bg-muted" />
-      <CardHeader className="gap-2">
-        <SkeletonLine className="h-5 w-28" />
-        <SkeletonLine className="h-3.5 w-40" />
-        <SkeletonLine className="h-3 w-24" />
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {[...Array(4)].map((_, i) => (
-          <SkeletonLine key={i} className="h-4 w-full" />
+    <div className="flex flex-col rounded-xl border">
+      <div className="p-5 pb-4">
+        <div className="h-5 w-24 animate-pulse rounded-md bg-muted" />
+        <div className="mt-2 h-3.5 w-36 animate-pulse rounded-md bg-muted" />
+      </div>
+      <div className="space-y-2.5 border-t px-5 py-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-4 w-full animate-pulse rounded-md bg-muted" />
         ))}
-      </CardContent>
-      <CardFooter>
-        <SkeletonLine className="h-3 w-14" />
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
-}
-
-function SkeletonLine({ className }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md bg-muted ${className ?? ""}`} />;
 }
 
 export function EmptyMenuState() {
   return (
-    <Card className="mx-auto max-w-md border-dashed text-center">
-      <CardHeader>
-        <CardTitleLevel>Nothing published yet</CardTitleLevel>
-        <p className="text-sm text-muted-foreground">
-          The mess hasn&apos;t published today&apos;s menu. Check back shortly.
-        </p>
-      </CardHeader>
-    </Card>
+    <div className="mx-auto max-w-md rounded-xl border border-dashed p-10 text-center">
+      <h3 className="text-lg font-semibold tracking-tight">Nothing published yet</h3>
+      <p className="mt-1.5 text-sm text-muted-foreground">
+        The mess has not published today&apos;s menu yet. Check back shortly.
+      </p>
+    </div>
   );
 }
 
 export function UnconfiguredSessionState() {
   return (
-    <Card className="mx-auto max-w-md border-dashed text-center">
-      <CardHeader>
-        <CardTitleLevel>Hosteller session not configured</CardTitleLevel>
-        <p className="text-sm text-muted-foreground">
-          Set the hosteller credentials in the server environment to enable menu
-          fetching. This is a server-side configuration step.
-        </p>
-      </CardHeader>
-    </Card>
+    <div className="mx-auto max-w-md rounded-xl border border-dashed p-10 text-center">
+      <h3 className="text-lg font-semibold tracking-tight">Hosteller session not configured</h3>
+      <p className="mt-1.5 text-sm text-muted-foreground">
+        Set the hosteller credentials in the server environment to enable menu fetching.
+      </p>
+    </div>
   );
-}
-
-function CardTitleLevel({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-lg font-semibold">{children}</h3>;
 }
 
 export function StaleBanner({ updatedAt }: { updatedAt: string }) {
   return (
-    <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
-      Showing last available menu — live fetch failed. Last updated{" "}
+    <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+      Showing the last available menu because the live fetch failed. Last updated{" "}
       {formatIst(updatedAt)}.
     </div>
   );
@@ -156,11 +134,11 @@ export function MenuBoard({
 }) {
   const nowMinutes = istMinutesOfDay();
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {stale && <StaleBanner updatedAt={snapshot.updatedAt} />}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {sortMeals(snapshot.meals).map((meal) => (
-          <MealCard key={meal.id} meal={meal} nowMinutes={nowMinutes} />
+        {sortMeals(snapshot.meals).map((meal, i) => (
+          <MealCard key={meal.id} meal={meal} nowMinutes={nowMinutes} index={i} />
         ))}
       </div>
     </div>

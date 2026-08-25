@@ -91,20 +91,26 @@ export function MenuPage({ initial }: { initial: MessMenuResponse }) {
         refreshing={refreshing}
         onRefresh={() => void refresh()}
       />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
-        <h1 className="mb-1 text-2xl font-bold tracking-tight">Today&apos;s Menu</h1>
-        <p className="mb-6 text-sm text-muted-foreground">
-          {state.kind === "ready"
-            ? `${state.snapshot.facility} · updated ${formatIst(state.snapshot.updatedAt)}`
-            : "Bennett University"}
-        </p>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+        <div className="rise mb-6">
+          <h1 className="text-2xl font-bold tracking-tight">Today&apos;s menu</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {state.kind === "ready"
+              ? `${snapshotFacilityLabel(state.snapshot)}, updated ${formatIst(state.snapshot.updatedAt)}`
+              : "Bennett University, Ground Floor"}
+          </p>
+        </div>
         <MenuBody state={state} />
       </main>
-      <footer className="border-t py-4 text-center text-xs text-muted-foreground">
-        Automatically synced from Camu · Today&apos;s menu only
+      <footer className="border-t py-5 text-center text-xs text-muted-foreground">
+        Synced automatically from Camu. Shows today&apos;s published menu only.
       </footer>
     </>
   );
+}
+
+function snapshotFacilityLabel(snapshot: MenuSnapshot): string {
+  return snapshot.facility;
 }
 
 function MenuBody({ state }: { state: PageState }) {
