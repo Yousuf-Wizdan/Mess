@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bennett Mess, Today's Menu",
+  title: "Bennett Mess",
   description:
     "Today's mess menu for Bennett University, automatically synced from Camu.",
 };

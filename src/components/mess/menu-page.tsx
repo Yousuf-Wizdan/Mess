@@ -96,7 +96,7 @@ export function MenuPage({ initial }: { initial: MessMenuResponse }) {
           <h1 className="text-2xl font-bold tracking-tight">Today&apos;s menu</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {state.kind === "ready"
-              ? `${snapshotFacilityLabel(state.snapshot)}, updated ${formatIst(state.snapshot.updatedAt)}`
+              ? `${state.snapshot.facility}, updated ${formatIst(state.snapshot.updatedAt)}`
               : "Bennett University, Ground Floor"}
           </p>
         </div>
@@ -107,10 +107,6 @@ export function MenuPage({ initial }: { initial: MessMenuResponse }) {
       </footer>
     </>
   );
-}
-
-function snapshotFacilityLabel(snapshot: MenuSnapshot): string {
-  return snapshot.facility;
 }
 
 function MenuBody({ state }: { state: PageState }) {
@@ -129,7 +125,7 @@ function MenuBody({ state }: { state: PageState }) {
       return <UnconfiguredSessionState />;
     case "error":
       return (
-        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+        <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
           {state.message}
         </div>
       );
