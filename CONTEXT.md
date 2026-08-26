@@ -22,8 +22,9 @@ automatically from the Camu ERP.
   The last successfully fetched rendering of one published day's menu (date,
   facility, meals, updatedAt). Persisted externally so every visitor sees
   last-known-good data even when Camu is unreachable. The UI always renders a
-  snapshot; "today's menu" means the currently published day only — never a
-  calendar of future days.
+  snapshot; "today's menu" means the currently published day only — the Camu
+  endpoint ignores date parameters and returns only the currently published day,
+  so a calendar of future days is not available.
 
 - **Meal Period**
   One serving window within a day (Breakfast, Lunch, Snack, Dinner) with a name,
