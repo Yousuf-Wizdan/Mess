@@ -76,15 +76,25 @@ back to credential login when it expires. See `.env.example`.
 
 ### Keeping the cron running (deployment note)
 
-Vercel Hobby's built-in cron is limited to once per day, so use a free external
-scheduler (e.g. [cron-job.org](https://cron-job.org) or Upstash QStash):
+A daily menu refresh is configured natively in [`vercel.json`](./vercel.json)
+as a Vercel cron. The expression is `30 18 * * *`. Vercel cron runs in **UTC**
+and on **Hobby** fires somewhere within the configured hour, so the effective
+window for this job is roughly 18:30 UTC → ~00:00–00:59 IST the next morning,
+right after the menu is published at midnight IST.
+The same job re-validates/refreshes the Camu session before fetching, so it also
+acts as the daily session backstop; no hourly cron is needed (Hobby allows only
+one cron per project).
 
-| Job | Schedule (IST) | Method + URL | Header |
-| --- | --- | --- | --- |
-| Daily menu | `5 0 * * *` | `POST https://<your-app>/api/cron/menu` | `Authorization: Bearer $CRON_SECRET` |
-| Session backstop | `0 * * * *` | `POST https://<your-app>/api/cron/session` | `Authorization: Bearer $CRON_SECRET` |
+| Job | Schedule (UTC) | Cron endpoint |
+| --- | --- | --- |
+| Daily menu + session warm | `30 18 * * *` | `GET /api/cron/menu` |
 
-Both endpoints are idempotent and safe under concurrent invocations.
+Set the `CRON_SECRET` environment variable in Vercel; it is auto-sent as the
+`Authorization: Bearer $CRON_SECRET` header, which the cron endpoint verifies.
+
+The `/api/cron/session` endpoint still exists but is no longer scheduled; it can
+be re-registered as a cron (or external scheduler) if true sub-daily warmth is
+ever required.
 
 ## Deployment (Vercel)
 
